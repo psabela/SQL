@@ -15,7 +15,7 @@ AS (select distinct
        SGBSTDN_STYP_CODE                              STU_STYP,
        SGBSTDN_CAMP_CODE          STU_CAMPUS,  
        SFRSTCR_CRN                                       REGIST_CRN,
-       class_schd.SCHEDULE_DESC,
+       class_schd.meeting_DESC,
        SSBSECT_SSTS_CODE                              CLASS_ACTV_INACTV_CANC,
        SFRSTCR_LEVL_CODE                              REGIST_COURSE_LEVEL,
        SFRSTCR_TERM_CODE                              REGIST_TERM_CODE,
@@ -26,6 +26,7 @@ AS (select distinct
        to_char(SFRSTCR_ADD_DATE , 'HH24') as REGIST_ADD_HOUR24,
        SFRSTCR_RSTS_DATE                              REGIST_STATUS_DATE,
        to_char(SFRSTCR_RSTS_DATE , 'HH24') as REGIST_STATUS_HOUR24,
+       class_schd.MEETING1 AS FIST_DAY_OF_CLASS,
        class_schd.WK1_SUN,
        class_schd.WK2_SUN,
        class_schd.WK3_FRI,
@@ -103,7 +104,7 @@ AS (select distinct
                a.scbcrse_title  
         from scbcrse a
         where a.scbcrse_eff_term = (select max(b.scbcrse_eff_term) from scbcrse b
-                                    where b.scbcrse_eff_term  <= '201502'
+                                    where b.scbcrse_eff_term  <= '201501'
                                     and b.scbcrse_crse_numb = a.scbcrse_crse_numb
                                     and b.scbcrse_subj_code = a.scbcrse_subj_code)
                group by 
@@ -118,136 +119,148 @@ AS (select distinct
             when '03' then 'Off-Campus'
             else 'Campus' end as "ZONE" from stvcamp) campus,
          (SELECT  
-         TERM, 
-          CRN, 
-          SCHEDULE_DESC,
-          MEETINGS,
-          START_DATE AS MEETING1,  
-          START_DATE + MEETING_2 AS MEETING_2,
-          START_DATE + MEETING_2 + MEETING_3 AS MEETING_3,
-          START_DATE + MEETING_2 + MEETING_3 + MEETING_4 AS MEETING_4,
-          START_DATE + MEETING_2 + MEETING_3 + MEETING_4 + MEETING_5 AS MEETING_5,
-          START_DATE + MEETING_2 + MEETING_3 + MEETING_4 + MEETING_5 + MEETING_6 AS MEETING_6,
-          (START_DATE + WK1) AS WK1_SUN,
-          (START_DATE + WK2) AS WK2_SUN,
-          (START_DATE + WK3) AS WK3_FRI,
-          (START_DATE + WK4) AS WK4_FRI
-        FROM (select 
-              schedule.TERM,
-              schedule.CRN,
-              schedule.START_DATE,
-              schedule.SCHEDULE_DESC,
-              schedule.MEETINGS,
-              CASE substr(schedule.days,1,1)
-              WHEN 'U' THEN INSTR('UMTWRFSU',substr(schedule.days,2,1),2)-1
-              WHEN 'M' THEN INSTR('MTWRFSUM',substr(schedule.days,2,1),2)-1
-              WHEN 'T' THEN INSTR('TWRFSUMT',substr(schedule.days,2,1),2)-1
-              WHEN 'W' THEN INSTR('WRFSUMTW',substr(schedule.days,2,1),2)-1
-              WHEN 'R' THEN INSTR('RFSUMTWR',substr(schedule.days,2,1),2)-1
-              WHEN 'F' THEN INSTR('FSUMTWRF',substr(schedule.days,2,1),2)-1
-              WHEN 'S' THEN INSTR('SUMTWRFS',substr(schedule.days,2,1),2)-1
-              END AS MEETING_2,  
-              CASE substr(schedule.days,2,1)
-              WHEN 'U' THEN INSTR('UMTWRFSU',substr(schedule.days,3,1),2)-1
-              WHEN 'M' THEN INSTR('MTWRFSUM',substr(schedule.days,3,1),2)-1
-              WHEN 'T' THEN  INSTR('TWRFSUMT',substr(schedule.days,3,1),2)-1
-              WHEN 'W' THEN INSTR('WRFSUMTW',substr(schedule.days,3,1),2)-1
-              WHEN 'R' THEN  INSTR('RFSUMTWR',substr(schedule.days,3,1),2)-1
-              WHEN 'F' THEN INSTR('FSUMTWRF',substr(schedule.days,3,1),2)-1
-              WHEN 'S' THEN INSTR('SUMTWRFS',substr(schedule.days,3,1),2)-1
-              END AS MEETING_3,  
-              CASE substr(schedule.days,3,1)
-              WHEN 'U' THEN INSTR('UMTWRFSU',substr(schedule.days,4,1),2)-1
-              WHEN 'M' THEN INSTR('MTWRFSUM',substr(schedule.days,4,1),2)-1
-              WHEN 'T' THEN  INSTR('TWRFSUMT',substr(schedule.days,4,1),2)-1
-              WHEN 'W' THEN INSTR('WRFSUMTW',substr(schedule.days,4,1),2)-1
-              WHEN 'R' THEN  INSTR('RFSUMTWR',substr(schedule.days,4,1),2)-1
-              WHEN 'F' THEN INSTR('FSUMTWRF',substr(schedule.days,4,1),2)-1
-              WHEN 'S' THEN INSTR('SUMTWRFS',substr(schedule.days,4,1),2)-1
-              END AS MEETING_4,  
-               CASE substr(schedule.days,4,1)
-              WHEN 'U' THEN INSTR('UMTWRFSU',substr(schedule.days,5,1),2)-1
-              WHEN 'M' THEN INSTR('MTWRFSUM',substr(schedule.days,5,1),2)-1
-              WHEN 'T' THEN  INSTR('TWRFSUMT',substr(schedule.days,5,1),2)-1
-              WHEN 'W' THEN INSTR('WRFSUMTW',substr(schedule.days,5,1),2)-1
-              WHEN 'R' THEN  INSTR('RFSUMTWR',substr(schedule.days,5,1),2)-1
-              WHEN 'F' THEN INSTR('FSUMTWRF',substr(schedule.days,5,1),2)-1
-              WHEN 'S' THEN INSTR('SUMTWRFS',substr(schedule.days,5,1),2)-1
-              END AS MEETING_5,  
-              CASE substr(schedule.days,5,1)
-              WHEN 'U' THEN INSTR('UMTWRFSU',substr(schedule.days,6,1),2)-1
-              WHEN 'M' THEN INSTR('MTWRFSUM',substr(schedule.days,6,1),2)-1
-              WHEN 'T' THEN  INSTR('TWRFSUMT',substr(schedule.days,6,1),2)-1
-              WHEN 'W' THEN INSTR('WRFSUMTW',substr(schedule.days,6,1),2)-1
-              WHEN 'R' THEN  INSTR('RFSUMTWR',substr(schedule.days,6,1),2)-1
-              WHEN 'F' THEN INSTR('FSUMTWRF',substr(schedule.days,6,1),2)-1
-              WHEN 'S' THEN INSTR('SUMTWRFS',substr(schedule.days,6,1),2)-1
-              END AS MEETING_6,
-                CASE substr(schedule.days,1,1)
-              WHEN 'U' THEN INSTR('UMTWRFS','U',2)-1
-              WHEN 'M' THEN INSTR('MTWRFSUM','U',2)-1
-              WHEN 'T' THEN INSTR('TWRFSUMT','U',2)-1
-              WHEN 'W' THEN INSTR('WRFSUMTW','U',2)-1
-              WHEN 'R' THEN INSTR('RFSUMTWR','U',2)-1
-              WHEN 'F' THEN INSTR('FSUMTWRF','U',2)-1
-              WHEN 'S' THEN INSTR('SUMTWRFS','U',2)-1
-              END AS WK1,
-              CASE substr(schedule.days,1,1)
-              WHEN 'U' THEN INSTR('UMTWRFS','U',2)-1 +7
-              WHEN 'M' THEN INSTR('MTWRFSUM','U',2)-1 +7
-              WHEN 'T' THEN INSTR('TWRFSUMT','U',2)-1 +7
-              WHEN 'W' THEN INSTR('WRFSUMTW','U',2)-1 +7
-              WHEN 'R' THEN INSTR('RFSUMTWR','U',2)-1 +7
-              WHEN 'F' THEN INSTR('FSUMTWRF','U',2)-1 +7
-              WHEN 'S' THEN INSTR('SUMTWRFS','U',2)-1 +7
-              END AS WK2,
-              CASE substr(schedule.days,1,1)
-              WHEN 'U' THEN INSTR('UMTWRFS','U',2)-1 +7 + 5
-              WHEN 'M' THEN INSTR('MTWRFSUM','U',2)-1 +7 + 5  
-              WHEN 'T' THEN INSTR('TWRFSUMT','U',2)-1 +7 + 5
-              WHEN 'W' THEN INSTR('WRFSUMTW','U',2)-1 +7 + 5 
-              WHEN 'R' THEN INSTR('RFSUMTWR','U',2)-1 +7 + 5
-              WHEN 'F' THEN INSTR('FSUMTWRF','U',2)-1 +7 + 5
-              WHEN 'S' THEN INSTR('SUMTWRFS','U',2)-1 + 7 + 5 
-              END AS WK3,
-              
-                CASE substr(schedule.days,1,1)
-              WHEN 'U' THEN INSTR('UMTWRFS','U',2)-1 +7 +7+ 5
-              WHEN 'M' THEN INSTR('MTWRFSUM','U',2)-1 +7+7 + 5  
-              WHEN 'T' THEN INSTR('TWRFSUMT','U',2)-1 +7+7 + 5
-              WHEN 'W' THEN INSTR('WRFSUMTW','U',2)-1 +7+7 + 5 
-              WHEN 'R' THEN INSTR('RFSUMTWR','U',2)-1 +7+7 + 5
-              WHEN 'F' THEN INSTR('FSUMTWRF','U',2)-1 +7+7 + 5
-              WHEN 'S' THEN INSTR('SUMTWRFS','U',2)-1 + 7+7 + 5 
-              END AS WK4
-        from 
-              (select 
-              SSRMEET_TERM_CODE AS TERM, 
-              SSRMEET_CRN AS CRN, 
-              SSRMEET_START_DATE AS START_DATE,
-              (select STVSCHD_DESC from STVSCHD where STVSCHD_CODE = SSRMEET_SCHD_CODE) SCHEDULE_DESC,
-              SSRMEET_SUN_DAY|| SSRMEET_MON_DAY||SSRMEET_TUE_DAY|| SSRMEET_WED_DAY|| SSRMEET_THU_DAY|| SSRMEET_FRI_DAY|| SSRMEET_SAT_DAY AS MEETINGS,
-              --first six meetings
-              substr(
-              SSRMEET_SUN_DAY|| SSRMEET_MON_DAY||SSRMEET_TUE_DAY|| SSRMEET_WED_DAY|| SSRMEET_THU_DAY|| SSRMEET_FRI_DAY|| SSRMEET_SAT_DAY 
-              ||SSRMEET_SUN_DAY|| SSRMEET_MON_DAY||SSRMEET_TUE_DAY|| SSRMEET_WED_DAY|| SSRMEET_THU_DAY|| SSRMEET_FRI_DAY|| SSRMEET_SAT_DAY 
-              ||SSRMEET_SUN_DAY|| SSRMEET_MON_DAY||SSRMEET_TUE_DAY|| SSRMEET_WED_DAY|| SSRMEET_THU_DAY|| SSRMEET_FRI_DAY|| SSRMEET_SAT_DAY 
-              ||SSRMEET_SUN_DAY|| SSRMEET_MON_DAY||SSRMEET_TUE_DAY|| SSRMEET_WED_DAY|| SSRMEET_THU_DAY|| SSRMEET_FRI_DAY|| SSRMEET_SAT_DAY 
-              ||SSRMEET_SUN_DAY|| SSRMEET_MON_DAY||SSRMEET_TUE_DAY|| SSRMEET_WED_DAY|| SSRMEET_THU_DAY|| SSRMEET_FRI_DAY|| SSRMEET_SAT_DAY 
-              ||SSRMEET_SUN_DAY|| SSRMEET_MON_DAY||SSRMEET_TUE_DAY|| SSRMEET_WED_DAY|| SSRMEET_THU_DAY|| SSRMEET_FRI_DAY|| SSRMEET_SAT_DAY
-              ,1,6)
-              as days
-              from SSRMEET
-              where SSRMEET_TERM_CODE = '201502')schedule)) class_schd   
+	  TERM, 
+	  CRN, 
+	  meeting_DESC,
+    schedule.MEETINGS,
+    (schedule.PTRM_START_DATE+ schedule.MEETING_1) AS MEETING1,  
+	  (schedule.PTRM_START_DATE+ schedule.MEETING_1 + MEETING_2) AS MEETING_2,
+	  (schedule.PTRM_START_DATE+ schedule.MEETING_1 + MEETING_2 + MEETING_3) AS MEETING_3,
+	  (schedule.PTRM_START_DATE+ schedule.MEETING_1 + MEETING_2 + MEETING_3 + MEETING_4) AS MEETING_4,
+	  (schedule.PTRM_START_DATE+ schedule.MEETING_1 + MEETING_2 + MEETING_3 + MEETING_4 + MEETING_5) AS MEETING_5,
+	  (schedule.PTRM_START_DATE+ schedule.MEETING_1 + MEETING_2 + MEETING_3 + MEETING_4 + MEETING_5 + MEETING_6) AS MEETING_6,
+    (schedule.PTRM_START_DATE+ schedule.MEETING_1 + WK1) AS WK1_SUN,
+    (schedule.PTRM_START_DATE+ schedule.MEETING_1+  WK2) AS WK2_SUN,
+    (schedule.PTRM_START_DATE+ schedule.MEETING_1 + WK3) AS WK3_FRI,
+    (schedule.PTRM_START_DATE+ schedule.MEETING_1 + WK4) AS WK4_FRI
+FROM 
+  (select 
+		  meeting.TERM,
+		  meeting.CRN,
+		  meeting.meeting_DESC,
+		  SSBSECT_PTRM_START_DATE AS PTRM_START_DATE,
+      to_char(SSBSECT_PTRM_START_DATE, 'Dy') PTRM_START_DAY,
+      meeting.MEETINGS,
+      CASE to_char(SSBSECT_PTRM_START_DATE, 'Dy')
+		  WHEN 'Sun' THEN INSTR('UMTWRFSU',substr(meeting.days,1,1),1)-1
+		  WHEN 'Mon' THEN INSTR('MTWRFSUM',substr(meeting.days,1,1),1)-1
+		  WHEN 'Tue' THEN INSTR('TWRFSUMT',substr(meeting.days,1,1),1)-1
+		  WHEN 'Wed' THEN INSTR('WRFSUMTW',substr(meeting.days,1,1),1)-1
+		  WHEN 'Thu' THEN INSTR('RFSUMTWR',substr(meeting.days,1,1),1)-1
+		  WHEN 'Fri' THEN INSTR('FSUMTWRF',substr(meeting.days,1,1),1)-1
+		  WHEN 'Sat' THEN INSTR('SUMTWRFS',substr(meeting.days,1,1),1)-1
+		  END AS MEETING_1, 
+		  CASE substr(meeting.days,1,1)
+		  WHEN 'U' THEN INSTR('UMTWRFSU',substr(meeting.days,2,1),2)-1
+		  WHEN 'M' THEN INSTR('MTWRFSUM',substr(meeting.days,2,1),2)-1
+		  WHEN 'T' THEN INSTR('TWRFSUMT',substr(meeting.days,2,1),2)-1
+		  WHEN 'W' THEN INSTR('WRFSUMTW',substr(meeting.days,2,1),2)-1
+		  WHEN 'R' THEN INSTR('RFSUMTWR',substr(meeting.days,2,1),2)-1
+		  WHEN 'F' THEN INSTR('FSUMTWRF',substr(meeting.days,2,1),2)-1
+		  WHEN 'S' THEN INSTR('SUMTWRFS',substr(meeting.days,2,1),2)-1
+		  END AS MEETING_2,  
+		  CASE substr(meeting.days,2,1)
+		  WHEN 'U' THEN INSTR('UMTWRFSU',substr(meeting.days,3,1),2)-1
+		  WHEN 'M' THEN INSTR('MTWRFSUM',substr(meeting.days,3,1),2)-1
+		  WHEN 'T' THEN INSTR('TWRFSUMT',substr(meeting.days,3,1),2)-1
+		  WHEN 'W' THEN INSTR('WRFSUMTW',substr(meeting.days,3,1),2)-1
+		  WHEN 'R' THEN INSTR('RFSUMTWR',substr(meeting.days,3,1),2)-1
+		  WHEN 'F' THEN INSTR('FSUMTWRF',substr(meeting.days,3,1),2)-1
+		  WHEN 'S' THEN INSTR('SUMTWRFS',substr(meeting.days,3,1),2)-1
+		  END AS MEETING_3,  
+		  CASE substr(meeting.days,3,1)
+		  WHEN 'U' THEN INSTR('UMTWRFSU',substr(meeting.days,4,1),2)-1
+		  WHEN 'M' THEN INSTR('MTWRFSUM',substr(meeting.days,4,1),2)-1
+		  WHEN 'T' THEN INSTR('TWRFSUMT',substr(meeting.days,4,1),2)-1
+		  WHEN 'W' THEN INSTR('WRFSUMTW',substr(meeting.days,4,1),2)-1
+		  WHEN 'R' THEN INSTR('RFSUMTWR',substr(meeting.days,4,1),2)-1
+		  WHEN 'F' THEN INSTR('FSUMTWRF',substr(meeting.days,4,1),2)-1
+		  WHEN 'S' THEN INSTR('SUMTWRFS',substr(meeting.days,4,1),2)-1
+		  END AS MEETING_4,  
+		   CASE substr(meeting.days,4,1)
+		  WHEN 'U' THEN INSTR('UMTWRFSU',substr(meeting.days,5,1),2)-1
+		  WHEN 'M' THEN INSTR('MTWRFSUM',substr(meeting.days,5,1),2)-1
+		  WHEN 'T' THEN INSTR('TWRFSUMT',substr(meeting.days,5,1),2)-1
+		  WHEN 'W' THEN INSTR('WRFSUMTW',substr(meeting.days,5,1),2)-1
+		  WHEN 'R' THEN INSTR('RFSUMTWR',substr(meeting.days,5,1),2)-1
+		  WHEN 'F' THEN INSTR('FSUMTWRF',substr(meeting.days,5,1),2)-1
+		  WHEN 'S' THEN INSTR('SUMTWRFS',substr(meeting.days,5,1),2)-1
+		  END AS MEETING_5,  
+		  CASE substr(meeting.days,5,1)
+		  WHEN 'U' THEN INSTR('UMTWRFSU',substr(meeting.days,6,1),2)-1
+		  WHEN 'M' THEN INSTR('MTWRFSUM',substr(meeting.days,6,1),2)-1
+		  WHEN 'T' THEN INSTR('TWRFSUMT',substr(meeting.days,6,1),2)-1
+		  WHEN 'W' THEN INSTR('WRFSUMTW',substr(meeting.days,6,1),2)-1
+		  WHEN 'R' THEN INSTR('RFSUMTWR',substr(meeting.days,6,1),2)-1
+		  WHEN 'F' THEN INSTR('FSUMTWRF',substr(meeting.days,6,1),2)-1
+		  WHEN 'S' THEN INSTR('SUMTWRFS',substr(meeting.days,6,1),2)-1
+		  END AS MEETING_6,      
+      CASE substr(meeting.days,1,1)
+      WHEN 'U' THEN INSTR('UMTWRFS','U',2)-1
+      WHEN 'M' THEN INSTR('MTWRFSUM','U',2)-1
+      WHEN 'T' THEN INSTR('TWRFSUMT','U',2)-1
+      WHEN 'W' THEN INSTR('WRFSUMTW','U',2)-1
+      WHEN 'R' THEN INSTR('RFSUMTWR','U',2)-1
+      WHEN 'F' THEN INSTR('FSUMTWRF','U',2)-1
+      WHEN 'S' THEN INSTR('SUMTWRFS','U',2)-1
+      END AS  WK1,      
+      CASE substr(meeting.days,1,1)
+      WHEN 'U' THEN INSTR('UMTWRFS','U',2)-1 +7
+      WHEN 'M' THEN INSTR('MTWRFSUM','U',2)-1 +7
+      WHEN 'T' THEN INSTR('TWRFSUMT','U',2)-1 +7
+      WHEN 'W' THEN INSTR('WRFSUMTW','U',2)-1 +7
+      WHEN 'R' THEN INSTR('RFSUMTWR','U',2)-1 +7
+      WHEN 'F' THEN INSTR('FSUMTWRF','U',2)-1 +7
+      WHEN 'S' THEN INSTR('SUMTWRFS','U',2)-1 +7
+      END AS WK2,
+      CASE substr(meeting.days,1,1)
+      WHEN 'U' THEN INSTR('UMTWRFS','U',2)-1 +7 + 5
+      WHEN 'M' THEN INSTR('MTWRFSUM','U',2)-1 +7 + 5  
+      WHEN 'T' THEN INSTR('TWRFSUMT','U',2)-1 +7 + 5
+      WHEN 'W' THEN INSTR('WRFSUMTW','U',2)-1 +7 + 5 
+      WHEN 'R' THEN INSTR('RFSUMTWR','U',2)-1 +7 + 5
+      WHEN 'F' THEN INSTR('FSUMTWRF','U',2)-1 +7 + 5
+      WHEN 'S' THEN INSTR('SUMTWRFS','U',2)-1 + 7 + 5 
+      END AS WK3,      
+        CASE substr(meeting.days,1,1)
+      WHEN 'U' THEN INSTR('UMTWRFS','U',2)-1 +7 +7+ 5
+      WHEN 'M' THEN INSTR('MTWRFSUM','U',2)-1 +7+7 + 5  
+      WHEN 'T' THEN INSTR('TWRFSUMT','U',2)-1 +7+7 + 5
+      WHEN 'W' THEN INSTR('WRFSUMTW','U',2)-1 +7+7 + 5 
+      WHEN 'R' THEN INSTR('RFSUMTWR','U',2)-1 +7+7 + 5
+      WHEN 'F' THEN INSTR('FSUMTWRF','U',2)-1 +7+7 + 5
+      WHEN 'S' THEN INSTR('SUMTWRFS','U',2)-1 + 7+7 + 5 
+      END AS WK4      
+  FROM  
+       SSBSECT,
+		  (     select 
+                SSRMEET_TERM_CODE AS TERM, 
+                SSRMEET_CRN AS CRN, 
+                (select STVSCHD_DESC from STVSCHD where STVSCHD_CODE = SSRMEET_SCHD_CODE) meeting_DESC,
+                SSRMEET_SUN_DAY|| SSRMEET_MON_DAY||SSRMEET_TUE_DAY|| SSRMEET_WED_DAY|| SSRMEET_THU_DAY|| SSRMEET_FRI_DAY|| SSRMEET_SAT_DAY AS MEETINGS,
+                substr(SSRMEET_SUN_DAY|| SSRMEET_MON_DAY||SSRMEET_TUE_DAY|| SSRMEET_WED_DAY|| SSRMEET_THU_DAY|| SSRMEET_FRI_DAY|| SSRMEET_SAT_DAY 
+                   ||SSRMEET_SUN_DAY|| SSRMEET_MON_DAY||SSRMEET_TUE_DAY|| SSRMEET_WED_DAY|| SSRMEET_THU_DAY|| SSRMEET_FRI_DAY|| SSRMEET_SAT_DAY 
+                   ||SSRMEET_SUN_DAY|| SSRMEET_MON_DAY||SSRMEET_TUE_DAY|| SSRMEET_WED_DAY|| SSRMEET_THU_DAY|| SSRMEET_FRI_DAY|| SSRMEET_SAT_DAY 
+                   ||SSRMEET_SUN_DAY|| SSRMEET_MON_DAY||SSRMEET_TUE_DAY|| SSRMEET_WED_DAY|| SSRMEET_THU_DAY|| SSRMEET_FRI_DAY|| SSRMEET_SAT_DAY 
+                   ||SSRMEET_SUN_DAY|| SSRMEET_MON_DAY||SSRMEET_TUE_DAY|| SSRMEET_WED_DAY|| SSRMEET_THU_DAY|| SSRMEET_FRI_DAY|| SSRMEET_SAT_DAY 
+                   ||SSRMEET_SUN_DAY|| SSRMEET_MON_DAY||SSRMEET_TUE_DAY|| SSRMEET_WED_DAY|| SSRMEET_THU_DAY|| SSRMEET_FRI_DAY|| SSRMEET_SAT_DAY,1,6) as days
+            from SSRMEET 
+            where SSRMEET_TERM_CODE = '201501') meeting
+  WHERE
+  SSBSECT_TERM_CODE = meeting.TERM
+  and SSBSECT_CRN = meeting.CRN) schedule) class_schd   
             
         where           
            b.sgbstdn_term_code_eff   = (select max(a.sgbstdn_term_code_eff)
                 from sgbstdn a
                 where a.sgbstdn_pidm = b.sgbstdn_pidm
                 and a.sgbstdn_term_code_eff <= sfrstcr_term_code)
+                
+                
+            and sfrstcr_pidm    = '56493'
             and sfrstcr_pidm = b.sgbstdn_pidm    
-            and sfrstcr_term_code = '201502'
-            and  (SFRSTCR_CREDIT_HR  > 0 or  SFRSTCR_BILL_HR > 0)
+            and sfrstcr_term_code = '201501'
+       --     and  (SFRSTCR_CREDIT_HR  > 0 or  SFRSTCR_BILL_HR > 0)
             and SSBSECT_TERM_CODE = sfrstcr_term_code
             and SSBSECT_CRN = SFRSTCR_CRN
             and SSBSECT_CAMP_CODE = campus.stvcamp_code
@@ -270,7 +283,7 @@ SAIG_SB_V2_DATA_COURSE_FEE AS (select
             SSRFEES_COLL_CODE,
             SYSDATE AS DATA_REFRESH_DATE
             from ssrfees
-            where ssrfees_term_code = '201502'),
+            where ssrfees_term_code = '201501'),
 
 SAIG_SB_V2_STAGE_SECTION_RULES AS (SELECT DISTINCT
     STU_PIDM AS PIDM,
@@ -369,7 +382,7 @@ from
     SFRRGFE_TO_ADD_DATE,
     SFRRGFE_VTYP_CODE
     from SFRRGFE 
-    where sfrrgfe_term_code='201502' 
+    where sfrrgfe_term_code='201501' 
     and sfrrgfe_entry_type = 'R' 
     and sfrrgfe_type IN ('CAMPUS','LEVEL','STUDENT'))
 where
@@ -418,7 +431,7 @@ SELECT distinct
 	ST.STU_PIDM,
 	SR.REGIST_TERM_CODE,
   SR.crn,
-  ST.SCHEDULE_DESC,
+  ST.meeting_DESC,
   ST.CLASS_ACTV_INACTV_CANC,
   ST.SECTION_PTRM_CODE,
   ST.REGIST_STATUS,
@@ -426,13 +439,14 @@ SELECT distinct
   ST.REGIST_ADD_HOUR24,
   ST.REGIST_STATUS_DATE,
   ST.REGIST_STATUS_HOUR24,
+  ST.SECTION_PTRM_START_DATE,
+  ST.FIST_DAY_OF_CLASS,  
   ST.WK1_SUN,
   ST.WK2_SUN,
   ST.WK3_FRI,
   ST.WK4_FRI,
   ST.REGISTRATION_DATE,
-  ST.SECTION_PTRM_START_DATE,
-	SR.ssrfees_detl_code,
+  SR.ssrfees_detl_code,
   SR.DCAT_CODE,
   ST.REGIST_BILL_HR AS REGIST_BILL_HR_ORIG,
   ST.REGIST_BILL_HR * (100 - NVL(ST.REFUND_TUI_PERCENT,0)) / 100 AS REGIST_BILL_HR,
@@ -471,7 +485,7 @@ SELECT distinct
 	ST.STU_PIDM,
 	ST.REGIST_TERM_CODE,
   BR.CRN,
-  ST.SCHEDULE_DESC,
+  ST.meeting_DESC,
   ST.CLASS_ACTV_INACTV_CANC,
   ST.SECTION_PTRM_CODE,
   ST.REGIST_STATUS,  
@@ -479,13 +493,14 @@ SELECT distinct
   ST.REGIST_ADD_HOUR24,
   ST.REGIST_STATUS_DATE,
   ST.REGIST_STATUS_HOUR24,
+  ST.SECTION_PTRM_START_DATE,
+  ST.FIST_DAY_OF_CLASS,  
   ST.WK1_SUN,
   ST.WK2_SUN,
   ST.WK3_FRI,
   ST.WK4_FRI,
   ST.REGISTRATION_DATE,
-  ST.SECTION_PTRM_START_DATE,
-	BR.DETAIL_CODE,
+  BR.DETAIL_CODE,
   BR.DCAT_CODE,
   ST.REGIST_BILL_HR AS REGIST_BILL_HR_ORIG,
   ST.REGIST_BILL_HR * (100 - NVL(ST.REFUND_TUI_PERCENT,0)) / 100 AS REGIST_BILL_HR,
