@@ -22,7 +22,14 @@ AS (select distinct
        SFRSTCR_CREDIT_HR                              REGIST_CREDIT_HR,
        SFRSTCR_BILL_HR                                REGIST_BILL_HR,
        SFRSTCR_RSTS_CODE                              REGIST_STATUS, 
+       SFRSTCR_ADD_DATE                                REGIST_ADD_DATE, 
+       to_char(SFRSTCR_ADD_DATE , 'HH24') as REGIST_ADD_HOUR24,
        SFRSTCR_RSTS_DATE                              REGIST_STATUS_DATE,
+       to_char(SFRSTCR_RSTS_DATE , 'HH24') as REGIST_STATUS_HOUR24,
+       class_schd.WK1_SUN,
+       class_schd.WK2_SUN,
+       class_schd.WK3_FRI,
+       class_schd.WK4_FRI,
       (SELECT SFBETRM_ADD_DATE FROM sfbetrm WHERE SFBETRM_PIDM = SGBSTDN_PIDM AND SFBETRM_TERM_CODE = SFRSTCR_TERM_CODE)   REGISTRATION_DATE,
        SSBSECT_CRSE_NUMB                              SECTION_COURSE_NO, 
        SSBSECT_SEQ_NUMB                               SECTION_SEQ_NO,
@@ -120,7 +127,11 @@ AS (select distinct
           START_DATE + MEETING_2 + MEETING_3 AS MEETING_3,
           START_DATE + MEETING_2 + MEETING_3 + MEETING_4 AS MEETING_4,
           START_DATE + MEETING_2 + MEETING_3 + MEETING_4 + MEETING_5 AS MEETING_5,
-          START_DATE + MEETING_2 + MEETING_3 + MEETING_4 + MEETING_5 + MEETING_6 AS MEETING_6
+          START_DATE + MEETING_2 + MEETING_3 + MEETING_4 + MEETING_5 + MEETING_6 AS MEETING_6,
+          (START_DATE + WK1) AS WK1_SUN,
+          (START_DATE + WK2) AS WK2_SUN,
+          (START_DATE + WK3) AS WK3_FRI,
+          (START_DATE + WK4) AS WK4_FRI
         FROM (select 
               schedule.TERM,
               schedule.CRN,
@@ -171,7 +182,44 @@ AS (select distinct
               WHEN 'R' THEN  INSTR('RFSUMTWR',substr(schedule.days,6,1),2)-1
               WHEN 'F' THEN INSTR('FSUMTWRF',substr(schedule.days,6,1),2)-1
               WHEN 'S' THEN INSTR('SUMTWRFS',substr(schedule.days,6,1),2)-1
-              END AS MEETING_6    
+              END AS MEETING_6,
+                CASE substr(schedule.days,1,1)
+              WHEN 'U' THEN INSTR('UMTWRFS','U',2)-1
+              WHEN 'M' THEN INSTR('MTWRFSUM','U',2)-1
+              WHEN 'T' THEN INSTR('TWRFSUMT','U',2)-1
+              WHEN 'W' THEN INSTR('WRFSUMTW','U',2)-1
+              WHEN 'R' THEN INSTR('RFSUMTWR','U',2)-1
+              WHEN 'F' THEN INSTR('FSUMTWRF','U',2)-1
+              WHEN 'S' THEN INSTR('SUMTWRFS','U',2)-1
+              END AS WK1,
+              CASE substr(schedule.days,1,1)
+              WHEN 'U' THEN INSTR('UMTWRFS','U',2)-1 +7
+              WHEN 'M' THEN INSTR('MTWRFSUM','U',2)-1 +7
+              WHEN 'T' THEN INSTR('TWRFSUMT','U',2)-1 +7
+              WHEN 'W' THEN INSTR('WRFSUMTW','U',2)-1 +7
+              WHEN 'R' THEN INSTR('RFSUMTWR','U',2)-1 +7
+              WHEN 'F' THEN INSTR('FSUMTWRF','U',2)-1 +7
+              WHEN 'S' THEN INSTR('SUMTWRFS','U',2)-1 +7
+              END AS WK2,
+              CASE substr(schedule.days,1,1)
+              WHEN 'U' THEN INSTR('UMTWRFS','U',2)-1 +7 + 5
+              WHEN 'M' THEN INSTR('MTWRFSUM','U',2)-1 +7 + 5  
+              WHEN 'T' THEN INSTR('TWRFSUMT','U',2)-1 +7 + 5
+              WHEN 'W' THEN INSTR('WRFSUMTW','U',2)-1 +7 + 5 
+              WHEN 'R' THEN INSTR('RFSUMTWR','U',2)-1 +7 + 5
+              WHEN 'F' THEN INSTR('FSUMTWRF','U',2)-1 +7 + 5
+              WHEN 'S' THEN INSTR('SUMTWRFS','U',2)-1 + 7 + 5 
+              END AS WK3,
+              
+                CASE substr(schedule.days,1,1)
+              WHEN 'U' THEN INSTR('UMTWRFS','U',2)-1 +7 +7+ 5
+              WHEN 'M' THEN INSTR('MTWRFSUM','U',2)-1 +7+7 + 5  
+              WHEN 'T' THEN INSTR('TWRFSUMT','U',2)-1 +7+7 + 5
+              WHEN 'W' THEN INSTR('WRFSUMTW','U',2)-1 +7+7 + 5 
+              WHEN 'R' THEN INSTR('RFSUMTWR','U',2)-1 +7+7 + 5
+              WHEN 'F' THEN INSTR('FSUMTWRF','U',2)-1 +7+7 + 5
+              WHEN 'S' THEN INSTR('SUMTWRFS','U',2)-1 + 7+7 + 5 
+              END AS WK4
         from 
               (select 
               SSRMEET_TERM_CODE AS TERM, 
@@ -374,7 +422,14 @@ SELECT distinct
   ST.CLASS_ACTV_INACTV_CANC,
   ST.SECTION_PTRM_CODE,
   ST.REGIST_STATUS,
+  ST.REGIST_ADD_DATE,
+  ST.REGIST_ADD_HOUR24,
   ST.REGIST_STATUS_DATE,
+  ST.REGIST_STATUS_HOUR24,
+  ST.WK1_SUN,
+  ST.WK2_SUN,
+  ST.WK3_FRI,
+  ST.WK4_FRI,
   ST.REGISTRATION_DATE,
   ST.SECTION_PTRM_START_DATE,
 	SR.ssrfees_detl_code,
@@ -420,7 +475,14 @@ SELECT distinct
   ST.CLASS_ACTV_INACTV_CANC,
   ST.SECTION_PTRM_CODE,
   ST.REGIST_STATUS,  
+  ST.REGIST_ADD_DATE,
+  ST.REGIST_ADD_HOUR24,
   ST.REGIST_STATUS_DATE,
+  ST.REGIST_STATUS_HOUR24,
+  ST.WK1_SUN,
+  ST.WK2_SUN,
+  ST.WK3_FRI,
+  ST.WK4_FRI,
   ST.REGISTRATION_DATE,
   ST.SECTION_PTRM_START_DATE,
 	BR.DETAIL_CODE,
